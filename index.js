@@ -1,3 +1,5 @@
+let botName = prompt("bot names?");
+let ws;
 let parseStr = "";
 let parseIdx = 1;
 let i3 = 1;
@@ -14,10 +16,15 @@ let _encode = [
 ];
 
 let cloudData = [];
-
+let getVM = () => app._reactRootContainer._internalRoot.current.child.stateNode.store.getState().scratchGui.vm;
 let itemNumOf = (arr, targetValue) => 1 + arr.findIndex((value, index) => value.toLowerCase() == targetValue);
 let letterOf = (arr, index) => arr[index - 1];
 let mathMod = (a, b) => ((a % b) + Math.abs(b)) % Math.abs(b);
+
+function getGameVersion () {
+    let cloudSpriteVars = getVM().runtime.targets.find(sprite => sprite?.sprite?.name == "Cloud").variables;
+    return Object.values(cloudSpriteVars).find(variable => variable?.name == "gameversion").value;
+}
 
 function initReader (text) {
     parseStr = text;
@@ -109,64 +116,74 @@ function writeChange (val) {
     }
 }
 
-let ws = new WebSocket("wss://clouddata.turbowarp.org/");
-ws.onopen = function () {
-    ws.send(JSON.stringify({
-        method: "handshake",
-        user: "thug",
-        project_id: "843162693"
-    }) + "\n");
+function connectWebSocket() {
+    ws = new WebSocket(`wss://clouddata.${location.hostname}/`);
 
-    let playerCount = 10;
-    let players = [];
-    let playerName = "thug";
-
-    for (let i = 0; i < playerCount; i++) {
-
-        let playerID = Math.floor(Math.random() * 6000);
-        initReader("");
-        writeString(playerName + i);
-        writeNumber(playerID);
-
-        players.push({
-            name: playerName + i,
-            encodedName: parseStr,
-            id: playerID,
-            x: 1000 + i * 5,
-            y: 1040,
-            helmet: 0,
-            chestplate: 0,
-            talk: 0,
-            claimIdx: 0,
-            ngidx: 0,
-            encodedStr: ""
-        });
-    }
-
-    setInterval(() => {
-        let player = players[Math.floor(Math.random() * playerCount)];
-
-        player.x = Math.floor(Math.random() * 8000);
-        player.y = Math.floor(Math.random() * 2000);
-
-        initReader(String(mathMod(23, 10) + player.encodedName));
-        writeNumber(player.helmet);
-        writeNumber(player.chestplate);
-        writeNumber(player.talk);
-        writeNumber(player.claimIdx);
-        writeNumber(player.x);
-        writeNumber(player.y);
-        writeNumber(player.ngidx);
-
-        player.encodedStr = parseStr;
-
-        let cloudVarIndex = Math.floor(Math.random() * 9) + 1;
+    ws.onopen = function () {
         ws.send(JSON.stringify({
-            method: "set",
-            user: "thug",
-            project_id: "843162693",
-            name: "☁ CLOUD" + cloudVarIndex,
-            value: player.encodedStr
-        }));
-    }, 100);
-};
+            method: "handshake",
+            user: getVM().runtime.ioDevices.userData._username,
+            project_id: "843162693"
+        }) + "\n");
+
+        let playerCount = 50;
+        let players = [];
+
+        for (let i = 0; i < playerCount; i++) {
+            let playerID = Math.floor(Math.random() * 6000);
+            initReader("");
+            writeString(botName + i);
+            writeNumber(playerID);
+
+            players.push({
+                name: botName + i,
+                encodedNameAndVersion: String(mathMod(getGameVersion(), 10) + parseStr),
+                id: playerID,
+                x: 1000 + i * 5,
+                y: 1040,
+                helmet: 0,
+                chestplate: 0,
+                talk: 0,
+                claimIdx: 0,
+                ngidx: 0,
+                encodedStr: ""
+            });
+        }
+
+        setInterval(() => {
+            if (ws.readyState !== WebSocket.OPEN) return;
+
+            let player = players[Math.floor(Math.random() * playerCount)];
+
+            player.x = Math.floor(Math.random() * 8000);
+            player.y = Math.floor(Math.random() * 2000);
+
+            initReader(player.encodedNameAndVersion);
+            writeNumber(player.helmet);
+            writeNumber(player.chestplate);
+            writeNumber(player.talk);
+            writeNumber(player.claimIdx);
+            writeNumber(player.x);
+            writeNumber(player.y);
+            writeNumber(player.ngidx);
+
+            player.encodedStr = parseStr;
+
+            let cloudVarIndex = Math.floor(Math.random() * 9) + 1;
+            ws.send(JSON.stringify({
+                method: "set",
+                user: getVM().runtime.ioDevices.userData._username,
+                project_id: "843162693",
+                name: "☁ CLOUD" + cloudVarIndex,
+                value: player.encodedStr
+            }) + "\n");
+        }, 100);
+    };
+
+    ws.onclose = function () {
+        setTimeout(connectWebSocket, 1000);
+    };
+
+}
+
+connectWebSocket();
