@@ -1,0 +1,2 @@
+# Scratch-MCMMO-Bot
+thug
