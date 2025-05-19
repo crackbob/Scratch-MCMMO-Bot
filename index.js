@@ -1,4 +1,5 @@
 let botName = prompt("bot names?");
+let playerCount = prompt("amount?");
 let ws;
 let parseStr = "";
 let parseIdx = 1;
@@ -126,7 +127,7 @@ function connectWebSocket() {
             project_id: "843162693"
         }) + "\n");
 
-        let playerCount = 50;
+        
         let players = [];
 
         for (let i = 0; i < playerCount; i++) {
@@ -155,7 +156,7 @@ function connectWebSocket() {
 
             let player = players[Math.floor(Math.random() * playerCount)];
 
-            player.x = Math.floor(Math.random() * 8000);
+            player.x = Math.floor(Math.random() * 15960);
             player.y = Math.floor(Math.random() * 2000);
 
             initReader(player.encodedNameAndVersion);
